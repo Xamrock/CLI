@@ -24,29 +24,65 @@ swift build
 
 # Run your first exploration
 .build/debug/XamrockCLI explore --app com.example.YourApp --platform ios
+
+# Add the generated test to your project
+cp scout-results/ScoutCLIExploration.swift YourAppUITests/
+
+# Run the test in Xcode (⌘U) or via xcodebuild
+xcodebuild test -project YourApp.xcodeproj -scheme YourApp
 ```
 
-That's it! The CLI will:
+The CLI will:
 1. ✅ Validate your environment
-2. 🤖 Launch AI-powered exploration
-3. 📊 Generate test files, reports, and dashboards
-4. 📦 Package everything in `./scout-results/`
+2. 📝 Generate test file configured for your app
+3. 💾 Save to `scout-results/ScoutCLIExploration.swift`
+
+Then when you run the test:
+1. 🤖 AI automatically explores your app
+2. 📊 Generates reports and dashboards
+3. 📦 Saves everything to `scout-results/`
 
 ## Usage
 
 ### Basic Exploration
 
-The simplest way to explore your iOS app:
+**Step 1: Generate the test**
 
 ```bash
 xamrock explore --app com.yourcompany.YourApp
 ```
 
-This will:
-- Auto-detect your Xcode project
-- Run 20 exploration steps
-- Generate a comprehensive test suite
-- Create an HTML dashboard of results
+This creates `scout-results/ScoutCLIExploration.swift` configured with:
+- Your app's bundle ID
+- 20 exploration steps (customizable)
+- Default exploration goal
+- Output directory settings
+
+**Step 2: Add to your Xcode project** (one-time setup)
+
+```bash
+# Copy to your UITests target
+cp scout-results/ScoutCLIExploration.swift YourAppUITests/
+
+# Then add it in Xcode:
+# File → Add Files to "YourApp"... → Select ScoutCLIExploration.swift
+# Make sure it's added to your UITests target
+```
+
+**Step 3: Run the exploration**
+
+In Xcode: Press `⌘U` to run tests
+
+Or via command line:
+```bash
+xcodebuild test -project YourApp.xcodeproj -scheme YourApp
+```
+
+The AI will automatically:
+- Explore your app for ~20 interactions
+- Take screenshots of each screen
+- Test user flows intelligently
+- Generate comprehensive reports
 
 ### With Custom Options
 
@@ -98,12 +134,15 @@ After an exploration run, you'll find:
 
 ```
 scout-results/
-├── GeneratedTests.swift      # Runnable XCUITest suite
-├── FailureReport.md          # Issues found during exploration
-├── dashboard.html            # Interactive visual report
-├── exploration.json          # Full exploration data
-└── manifest.json             # Metadata for CI/CD
+├── ScoutCLIExploration.swift           # Test to add to your project
+├── manifest.json                        # Metadata for CI/CD
+└── 2025-10-27_23-34-49_ABC123/         # Timestamped results folder
+    ├── GeneratedTests.swift             # Full test suite (8+ tests)
+    ├── FailureReport.md                 # Issues found during exploration
+    └── dashboard.html                   # Interactive visual report (1MB+)
 ```
+
+**Note:** The timestamped subfolder is created when you run the test, not by the CLI.
 
 ### Generated Test Suite
 
@@ -146,19 +185,31 @@ Open `dashboard.html` to see:
 
 ### Local Testing
 
-1. **Run exploration during development:**
+1. **Generate test file:**
    ```bash
    xamrock explore --app com.example.App --steps 10 --verbose
    ```
 
-2. **Review the dashboard:**
+2. **Add to Xcode (first time only):**
    ```bash
-   open scout-results/dashboard.html
+   cp scout-results/ScoutCLIExploration.swift MyAppUITests/
+   ```
+   Then add the file to your UITests target in Xcode.
+
+3. **Run exploration:**
+   ```bash
+   # In Xcode: Press ⌘U
+   # Or via CLI:
+   xcodebuild test -project MyApp.xcodeproj -scheme MyApp
    ```
 
-3. **Add generated tests to your project:**
-   - Copy `scout-results/GeneratedTests.swift` to your test target
-   - Run tests with `⌘U` in Xcode or `xcodebuild test`
+4. **Review results:**
+   ```bash
+   open scout-results/*/dashboard.html
+   cat scout-results/*/FailureReport.md
+   ```
+
+5. **Next iterations:** Just re-run step 3 - the test file stays in your project!
 
 ### CI/CD Integration
 
@@ -200,15 +251,26 @@ jobs:
 
 ## How It Works
 
-Xamrock CLI is a wrapper around [AITestScout](../AITestScout), orchestrating the entire exploration workflow:
+Xamrock CLI is a test generator that creates XCUITest files powered by [AITestScout](../AITestScout):
 
-1. **Validation**: Checks for Xcode, validates bundle ID, confirms project structure
-2. **Test Generation**: Creates a temporary XCUITest file configured for your app
-3. **Execution**: Runs `xcodebuild test` with the generated test
-4. **Collection**: Gathers all artifacts (tests, reports, dashboards)
-5. **Packaging**: Creates a manifest.json for CI/CD integration
+### What the CLI Does
 
-The CLI doesn't directly interact with your app - instead it generates and executes XCUITests that use AITestScout to perform intelligent exploration.
+1. **Validates** your environment (Xcode, bundle ID, project structure)
+2. **Generates** `ScoutCLIExploration.swift` configured for your app
+3. **Saves** the test file to `scout-results/`
+4. **Creates** `manifest.json` with metadata
+
+### What Happens When You Run the Test
+
+Once you add `ScoutCLIExploration.swift` to your Xcode project and run it:
+
+1. **Launch**: XCUITest starts your app
+2. **Explore**: AITestScout AI makes intelligent decisions about which UI elements to interact with
+3. **Document**: Screenshots, failures, and navigation paths are captured
+4. **Generate**: A comprehensive test suite is created based on what was discovered
+5. **Report**: HTML dashboard, failure report, and test files are saved
+
+The CLI is a **test generator**, not a test runner. This gives you full control over when and how tests execute.
 
 ## Roadmap
 
