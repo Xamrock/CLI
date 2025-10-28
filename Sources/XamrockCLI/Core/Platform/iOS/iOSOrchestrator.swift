@@ -39,16 +39,16 @@ public class iOSOrchestrator: PlatformOrchestrator {
     }
 
     public func generateTestFile(config: CLIConfiguration) throws -> URL {
-        // Generate temporary directory for test file
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("XamrockCLI")
-            .appendingPathComponent(UUID().uuidString)
+        // Ensure output directory exists
+        try FileManager.default.createDirectory(
+            at: config.outputDirectory,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
 
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-        // Generate test file
+        // Generate test file in output directory
         let testFileName = "ScoutCLIExploration.swift"
-        let testFileURL = tempDir.appendingPathComponent(testFileName)
+        let testFileURL = config.outputDirectory.appendingPathComponent(testFileName)
 
         let testFileContent = generateTestFileContent(config: config)
         try testFileContent.write(to: testFileURL, atomically: true, encoding: .utf8)

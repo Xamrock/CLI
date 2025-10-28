@@ -108,6 +108,13 @@ public class XcodebuildRunner {
 
     /// Run the xcodebuild test command
     public func runTest(config: CLIConfiguration, testFile: URL) throws -> TestExecutionResult {
+        // Ensure output directory exists before running
+        try FileManager.default.createDirectory(
+            at: config.outputDirectory,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+
         let command = buildCommand(config: config, testFile: testFile)
         let startTime = Date()
 
