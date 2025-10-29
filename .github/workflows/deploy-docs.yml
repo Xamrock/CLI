@@ -28,7 +28,6 @@ jobs:
             --target XamrockCLI \
             --disable-indexing \
             --transform-for-static-hosting \
-            --hosting-base-path XamrockCLI \
             --output-path ./docs
 
       - name: Add CNAME for custom domain
