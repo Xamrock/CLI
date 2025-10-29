@@ -1,0 +1,71 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Remove 'v' prefix if present
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Download release tarball
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          curl -L -o xamrock.tar.gz "https://github.com/Xamrock/CLI/archive/refs/tags/$VERSION.tar.gz"
+          ls -lh xamrock.tar.gz
+
+      - name: Calculate SHA256
+        id: sha
+        run: |
+          SHA256=$(sha256sum xamrock.tar.gz | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "Calculated SHA256: $SHA256"
+
+      - name: Checkout tap repository
+        uses: actions/checkout@v4
+        with:
+          repository: xamrock/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA256="${{ steps.sha.outputs.sha256 }}"
+
+          cd homebrew-tap
+
+          # Update the formula file
+          sed -i "s|url \".*\"|url \"https://github.com/Xamrock/CLI/archive/refs/tags/$VERSION.tar.gz\"|" Formula/xamrock.rb
+          sed -i "s|sha256 \".*\"|sha256 \"$SHA256\"|" Formula/xamrock.rb
+
+          echo "Updated formula:"
+          cat Formula/xamrock.rb
+
+      - name: Commit and push changes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          cd homebrew-tap
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add Formula/xamrock.rb
+          git commit -m "Update xamrock formula to version $VERSION"
+          git push
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "✅ Successfully updated Homebrew formula to version $VERSION"
+          echo "Users can now install with: brew upgrade xamrock"

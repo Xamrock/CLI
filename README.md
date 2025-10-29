@@ -14,22 +14,38 @@ Xamrock CLI brings intelligent UI exploration to your iOS apps with a simple com
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/Xamrock/CLI.git
-cd Xamrock/CLI
+#### Homebrew (Recommended)
 
-# Build the CLI
-swift build
+```bash
+# Add the Xamrock tap
+brew tap xamrock/tap
+
+# Install the CLI
+brew install xamrock
 
 # Run your first exploration
-.build/debug/XamrockCLI explore --app com.example.YourApp --platform ios
+xamrock explore --app com.example.YourApp
 
 # Add the generated test to your project
 cp scout-results/ScoutCLIExploration.swift YourAppUITests/
 
 # Run the test in Xcode (⌘U) or via xcodebuild
 xcodebuild test -project YourApp.xcodeproj -scheme YourApp
+```
+
+#### Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/Xamrock/CLI.git
+cd CLI
+
+# Build and install
+make install
+
+# Or build only
+swift build -c release
+.build/release/XamrockCLI explore --app com.example.YourApp
 ```
 
 The CLI will:
@@ -228,10 +244,8 @@ jobs:
 
       - name: Install Xamrock CLI
         run: |
-          git clone https://github.com/Xamrock/CLI.git
-          cd Xamrock/CLI
-          swift build -c release
-          echo "$PWD/.build/release" >> $GITHUB_PATH
+          brew tap xamrock/tap
+          brew install xamrock
 
       - name: Run AI Exploration
         run: |
