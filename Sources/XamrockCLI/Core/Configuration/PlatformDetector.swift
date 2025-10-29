@@ -1,7 +1,7 @@
 import Foundation
 
 /// Supported mobile platforms
-public enum Platform: String, Codable, Equatable {
+public enum Platform: String, Codable, Equatable, Sendable {
     case iOS
     case android
 }
