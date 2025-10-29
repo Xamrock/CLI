@@ -286,6 +286,32 @@ Once you add `ScoutCLIExploration.swift` to your Xcode project and run it:
 
 The CLI is a **test generator**, not a test runner. This gives you full control over when and how tests execute.
 
+## Troubleshooting
+
+### Homebrew Installation Issues
+
+**Command not found after installation:**
+
+If `xamrock` is not found after installing via Homebrew, run:
+```bash
+brew link xamrock
+```
+
+**Build fails with "Command Line Tools are too outdated":**
+
+Update your Command Line Tools:
+```bash
+xcode-select --install
+```
+
+Or update via Software Update in System Settings.
+
+**Verify installation:**
+```bash
+which xamrock
+xamrock --version
+```
+
 ## Roadmap
 
 - [ ] Android support (via Swift for Android & Espresso)
