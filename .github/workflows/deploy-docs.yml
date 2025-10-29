@@ -23,7 +23,8 @@ jobs:
 
       - name: Generate DocC archive
         run: |
-          swift package generate-documentation \
+          swift package --allow-writing-to-directory ./docs \
+            generate-documentation \
             --target XamrockCLI \
             --disable-indexing \
             --transform-for-static-hosting \
