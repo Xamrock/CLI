@@ -4,6 +4,8 @@
 
 Xamrock CLI brings intelligent UI exploration to your iOS apps with a simple command-line interface. Point it at your app, and watch as AI automatically discovers screens, tests user flows, and generates comprehensive reports.
 
+**[📚 Full Documentation](https://docs.xamrock.com)** | [Quick Start](#quick-start) | [Installation](#installation)
+
 ## Quick Start
 
 ### Prerequisites
@@ -318,6 +320,20 @@ xamrock --version
 - [ ] Cloud results dashboard
 - [ ] Custom exploration strategies
 - [ ] Regression detection
+
+## Documentation
+
+For comprehensive documentation, visit **[docs.xamrock.com](https://docs.xamrock.com)**
+
+Topics covered:
+- Getting Started guide
+- Installation options
+- CI/CD integration
+- Configuration reference
+- Troubleshooting
+- Generated tests format
+
+The documentation is built with DocC and automatically updated on every commit.
 
 ## License
 
