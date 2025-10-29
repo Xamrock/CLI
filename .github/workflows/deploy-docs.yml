@@ -33,6 +33,9 @@ jobs:
       - name: Add CNAME for custom domain
         run: echo "docs.xamrock.com" > ./docs/CNAME
 
+      - name: Add root redirect to documentation
+        run: echo "/  /documentation/xamrockcli  301" > ./docs/_redirects
+
       - name: Install Wrangler
         run: npm install -g wrangler
 
