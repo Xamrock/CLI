@@ -12,7 +12,7 @@ struct Xamrock: ParsableCommand {
 
         Currently supports iOS via AITestScout framework. Android support coming soon.
         """,
-        version: "1.0.0",
+        version: "0.3.0",
         subcommands: [ExploreCommand.self, FixtureCommand.self],
         defaultSubcommand: ExploreCommand.self
     )
