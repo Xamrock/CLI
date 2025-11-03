@@ -38,6 +38,9 @@ public struct CLIConfiguration {
     /// Verbose console output
     public var verbose: Bool
 
+    /// Path to fixture file for test data
+    public var fixturePath: String?
+
     /// Initialize CLI configuration
     public init(
         platform: Platform?,
@@ -51,7 +54,8 @@ public struct CLIConfiguration {
         outputDirectory: URL = URL(fileURLWithPath: "./scout-results"),
         generateDashboard: Bool = true,
         failOnIssues: Bool = false,
-        verbose: Bool = false
+        verbose: Bool = false,
+        fixturePath: String? = nil
     ) {
         self.platform = platform
         self.appIdentifier = appIdentifier
@@ -65,5 +69,6 @@ public struct CLIConfiguration {
         self.generateDashboard = generateDashboard
         self.failOnIssues = failOnIssues
         self.verbose = verbose
+        self.fixturePath = fixturePath
     }
 }

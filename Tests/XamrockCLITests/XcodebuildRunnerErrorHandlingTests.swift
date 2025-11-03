@@ -179,4 +179,156 @@ final class XcodebuildRunnerErrorHandlingTests: XCTestCase {
         XCTAssertNotNil(result)
         // The actual output is captured in the result parsing
     }
+
+    // MARK: - Error Message Extraction Tests
+
+    func testParseResultExtractsTestTargetNotFoundError() {
+        // Given: xcodebuild output indicating test target not found (exit code 65)
+        let output = """
+        xcodebuild: error: Unable to find a destination matching the provided destination specifier:
+                { platform:iOS Simulator }
+
+        ** TEST FAILED **
+        """
+        let config = CLIConfiguration(
+            platform: .iOS,
+            appIdentifier: "com.example.MyApp",
+            projectPath: tempDirectory,
+            steps: 20,
+            goal: "Test",
+            outputDirectory: tempDirectory
+        )
+
+        // When: Parsing result with exit code 65
+        let runner = XcodebuildRunner()
+        let result = runner.parseResult(
+            output: output,
+            exitCode: 65,
+            startTime: Date(),
+            config: config
+        )
+
+        // Then: Should capture error details
+        XCTAssertEqual(result.exitCode, 65)
+        XCTAssertFalse(result.wasSuccessful)
+        XCTAssertNotNil(result.errorMessage)
+        XCTAssertTrue(result.errorMessage?.contains("destination") ?? false)
+    }
+
+    func testParseResultExtractsSchemeNotFoundError() {
+        // Given: xcodebuild output indicating scheme not found
+        let output = """
+        xcodebuild: error: Scheme MyApp is not currently configured for the test action.
+        ** TEST FAILED **
+        """
+        let config = CLIConfiguration(
+            platform: .iOS,
+            appIdentifier: "com.example.MyApp",
+            projectPath: tempDirectory,
+            steps: 20,
+            goal: "Test",
+            outputDirectory: tempDirectory
+        )
+
+        // When: Parsing result
+        let runner = XcodebuildRunner()
+        let result = runner.parseResult(
+            output: output,
+            exitCode: 70,
+            startTime: Date(),
+            config: config
+        )
+
+        // Then: Should capture scheme error
+        XCTAssertNotNil(result.errorMessage)
+        XCTAssertTrue(result.errorMessage?.contains("Scheme") ?? false)
+    }
+
+    func testParseResultExtractsBuildFailedError() {
+        // Given: xcodebuild output indicating build failed
+        let output = """
+        The following build commands failed:
+                CompileSwift normal arm64 Compiling TestFile.swift
+        (1 failure)
+        ** BUILD FAILED **
+        """
+        let config = CLIConfiguration(
+            platform: .iOS,
+            appIdentifier: "com.example.MyApp",
+            projectPath: tempDirectory,
+            steps: 20,
+            goal: "Test",
+            outputDirectory: tempDirectory
+        )
+
+        // When: Parsing result
+        let runner = XcodebuildRunner()
+        let result = runner.parseResult(
+            output: output,
+            exitCode: 65,
+            startTime: Date(),
+            config: config
+        )
+
+        // Then: Should capture build error
+        XCTAssertNotNil(result.errorMessage)
+        XCTAssertTrue(result.errorMessage?.contains("BUILD FAILED") ?? false)
+    }
+
+    func testParseResultProvidesSuggestionForExitCode65() {
+        // Given: Exit code 65 (general build/test failure)
+        let output = "** BUILD FAILED **"
+        let config = CLIConfiguration(
+            platform: .iOS,
+            appIdentifier: "com.example.MyApp",
+            projectPath: tempDirectory,
+            steps: 20,
+            goal: "Test",
+            outputDirectory: tempDirectory
+        )
+
+        // When: Parsing result
+        let runner = XcodebuildRunner()
+        let result = runner.parseResult(
+            output: output,
+            exitCode: 65,
+            startTime: Date(),
+            config: config
+        )
+
+        // Then: Should provide suggestion
+        XCTAssertNotNil(result.errorSuggestion)
+        XCTAssertFalse(result.errorSuggestion?.isEmpty ?? true)
+    }
+
+    func testParseResultCapturesFullErrorOutput() {
+        // Given: Multi-line error output
+        let output = """
+        xcodebuild: error: Unable to find a destination
+        Error Domain=IDETestOperationsObserverErrorDomain Code=14
+        Error: Test target not found
+        ** TEST FAILED **
+        """
+        let config = CLIConfiguration(
+            platform: .iOS,
+            appIdentifier: "com.example.MyApp",
+            projectPath: tempDirectory,
+            steps: 20,
+            goal: "Test",
+            outputDirectory: tempDirectory
+        )
+
+        // When: Parsing result
+        let runner = XcodebuildRunner()
+        let result = runner.parseResult(
+            output: output,
+            exitCode: 65,
+            startTime: Date(),
+            config: config
+        )
+
+        // Then: Should preserve full error context
+        XCTAssertNotNil(result.errorMessage)
+        // Error message should be extractable from full output
+    }
 }

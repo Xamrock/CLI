@@ -187,4 +187,89 @@ final class ConsoleFormatterTests: XCTestCase {
         XCTAssertTrue(success.contains("Success"))
         XCTAssertTrue(error.contains("Error"))
     }
+
+    // MARK: - Enhanced Error Display Tests
+
+    func testFormatCompletionBannerWithErrorMessage() {
+        // Given: Result with error message
+        let result = TestExecutionResult(
+            exitCode: 65,
+            outputDirectory: URL(fileURLWithPath: "/output"),
+            duration: 5.2,
+            screensDiscovered: 0,
+            failuresFound: 0,
+            errorMessage: "Unable to find a destination matching the provided destination specifier",
+            errorSuggestion: nil
+        )
+
+        // When: Formatting completion banner
+        let output = formatter.formatCompletionBanner(result: result)
+
+        // Then: Should display error message
+        XCTAssertTrue(output.contains("❌") || output.contains("FAILED"))
+        XCTAssertTrue(output.contains("destination"))
+    }
+
+    func testFormatCompletionBannerWithErrorSuggestion() {
+        // Given: Result with error and suggestion
+        let result = TestExecutionResult(
+            exitCode: 65,
+            outputDirectory: URL(fileURLWithPath: "/output"),
+            duration: 3.1,
+            screensDiscovered: 0,
+            failuresFound: 0,
+            errorMessage: "Scheme not found",
+            errorSuggestion: """
+            Try:
+              1. Open your project in Xcode
+              2. Verify the scheme exists
+            """
+        )
+
+        // When: Formatting completion banner
+        let output = formatter.formatCompletionBanner(result: result)
+
+        // Then: Should display both error and suggestion
+        XCTAssertTrue(output.contains("Scheme"))
+        XCTAssertTrue(output.contains("Try:") || output.contains("1."))
+    }
+
+    func testFormatCompletionBannerWithExitCode() {
+        // Given: Result with non-zero exit code
+        let result = TestExecutionResult(
+            exitCode: 65,
+            outputDirectory: URL(fileURLWithPath: "/output"),
+            duration: 2.0,
+            screensDiscovered: 0,
+            failuresFound: 0,
+            errorMessage: "Build failed",
+            errorSuggestion: nil
+        )
+
+        // When: Formatting completion banner
+        let output = formatter.formatCompletionBanner(result: result)
+
+        // Then: Should display exit code
+        XCTAssertTrue(output.contains("65") || output.contains("Exit"))
+    }
+
+    func testFormatCompletionBannerSuccessHidesErrorFields() {
+        // Given: Successful result (no error fields should be shown)
+        let result = TestExecutionResult(
+            exitCode: 0,
+            outputDirectory: URL(fileURLWithPath: "/output"),
+            duration: 120.0,
+            screensDiscovered: 15,
+            failuresFound: 0,
+            errorMessage: nil,
+            errorSuggestion: nil
+        )
+
+        // When: Formatting completion banner
+        let output = formatter.formatCompletionBanner(result: result)
+
+        // Then: Should not contain error-related text
+        XCTAssertTrue(output.contains("✅") || output.contains("Complete"))
+        XCTAssertFalse(output.contains("Error") || output.contains("ERROR"))
+    }
 }

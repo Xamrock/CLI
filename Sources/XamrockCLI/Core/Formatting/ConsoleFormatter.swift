@@ -61,13 +61,32 @@ public class ConsoleFormatter {
             lines.append(formatColored("║                  ✅ Exploration Complete!                     ║", color: .green))
             lines.append(formatColored("╚═══════════════════════════════════════════════════════════════╝", color: .green))
         } else {
+            let exitCodeText = result.exitCode != 0 ? " (Exit Code: \(result.exitCode))" : ""
             lines.append(formatColored("╔═══════════════════════════════════════════════════════════════╗", color: .red))
-            lines.append(formatColored("║                  ❌ Exploration Failed                        ║", color: .red))
+            lines.append(formatColored("║                  ❌ Exploration Failed\(exitCodeText.padding(toLength: 24 - exitCodeText.count, withPad: " ", startingAt: 0))║", color: .red))
             lines.append(formatColored("╚═══════════════════════════════════════════════════════════════╝", color: .red))
         }
 
         lines.append("")
         lines.append(formatMetrics(result: result))
+
+        // Add error details if present
+        if let errorMessage = result.errorMessage {
+            lines.append("")
+            lines.append(formatColored("Error:", color: .red))
+            lines.append("  \(errorMessage)")
+        }
+
+        // Add suggestion if present
+        if let suggestion = result.errorSuggestion {
+            lines.append("")
+            lines.append(formatColored("💡 Suggestion:", color: .yellow))
+            // Indent each line of the suggestion
+            let suggestionLines = suggestion.components(separatedBy: .newlines)
+            for line in suggestionLines {
+                lines.append("  \(line)")
+            }
+        }
 
         return lines.joined(separator: "\n")
     }

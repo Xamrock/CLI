@@ -17,19 +17,29 @@ public struct TestExecutionResult: Equatable {
     /// Number of failures found during exploration
     public let failuresFound: Int
 
+    /// Error message extracted from xcodebuild output (if any)
+    public let errorMessage: String?
+
+    /// Suggested fix based on the error type
+    public let errorSuggestion: String?
+
     /// Initialize test execution result
     public init(
         exitCode: Int,
         outputDirectory: URL,
         duration: TimeInterval,
         screensDiscovered: Int,
-        failuresFound: Int
+        failuresFound: Int,
+        errorMessage: String? = nil,
+        errorSuggestion: String? = nil
     ) {
         self.exitCode = exitCode
         self.outputDirectory = outputDirectory
         self.duration = duration
         self.screensDiscovered = screensDiscovered
         self.failuresFound = failuresFound
+        self.errorMessage = errorMessage
+        self.errorSuggestion = errorSuggestion
     }
 
     /// Whether the test execution was successful

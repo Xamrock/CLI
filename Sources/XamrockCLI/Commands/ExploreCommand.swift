@@ -63,6 +63,11 @@ public struct ExploreCommand: ParsableCommand {
     @Flag(name: [.short, .customLong("verbose")], help: "Verbose console output")
     public var verbose: Bool = false
 
+    // MARK: - Fixture Options
+
+    @Option(name: .customLong("fixture"), help: "Path to fixture file for test data")
+    public var fixturePath: String?
+
     // MARK: - Initialization
 
     public init() {}
@@ -187,7 +192,8 @@ public struct ExploreCommand: ParsableCommand {
             outputDirectory: outputDirectory,
             generateDashboard: generateDashboard,
             failOnIssues: failOnIssues,
-            verbose: verbose
+            verbose: verbose,
+            fixturePath: fixturePath
         )
     }
 }
