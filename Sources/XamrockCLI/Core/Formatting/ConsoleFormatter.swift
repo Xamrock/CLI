@@ -182,6 +182,24 @@ public class ConsoleFormatter {
         return color.rawValue + text + ConsoleColor.reset.rawValue
     }
 
+    /// Format a clickable link (underlined cyan)
+    public func formatLink(_ url: String) -> String {
+        guard useColors else { return url }
+        return "   \u{001B}[4;36m\(url)\u{001B}[0m"
+    }
+
+    /// Format an informational message
+    public func formatInfo(_ message: String) -> String {
+        guard useColors else { return message }
+        return "   \u{001B}[36mℹ\u{001B}[0m \(message)"
+    }
+
+    /// Format a success message
+    public func formatSuccess(_ message: String) -> String {
+        guard useColors else { return message }
+        return "   \u{001B}[32m✓\u{001B}[0m \(message)"
+    }
+
     // MARK: - Private Helpers
 
     private func getFileIcon(for fileName: String) -> String {

@@ -74,7 +74,7 @@ public struct ExploreCommand: ParsableCommand {
 
     // MARK: - Command Execution
 
-    public mutating func run() throws {
+    public mutating func run() async throws {
         // Initialize console formatter
         let formatter = ConsoleFormatter(verbose: verbose)
 
@@ -124,6 +124,25 @@ public struct ExploreCommand: ParsableCommand {
         let manifestFile = config.outputDirectory.appendingPathComponent("manifest.json")
         try manifestGenerator.saveManifest(manifest, to: manifestFile)
         print(formatter.formatProgress(step: "Generating manifest", isDone: true))
+
+        // Upload to backend if configured
+        if EnvironmentConfig.isBackendEnabled {
+            print(formatter.formatProgress(step: "Uploading to backend", isDone: false))
+            do {
+                try await uploadToBackend(
+                    config: config,
+                    result: result,
+                    artifacts: artifacts + [manifestFile],
+                    formatter: formatter
+                )
+                print(formatter.formatProgress(step: "Uploading to backend", isDone: true))
+            } catch {
+                print("")
+                print("⚠️  Backend upload failed: \(error.localizedDescription)")
+                print("   Results saved locally in \(config.outputDirectory.path)")
+                print("")
+            }
+        }
 
         // Print completion banner
         print(formatter.formatCompletionBanner(result: result))
@@ -195,5 +214,190 @@ public struct ExploreCommand: ParsableCommand {
             verbose: verbose,
             fixturePath: fixturePath
         )
+    }
+
+    // MARK: - Backend Upload
+
+    /// Upload exploration results to the backend
+    private func uploadToBackend(
+        config: CLIConfiguration,
+        result: TestExecutionResult,
+        artifacts: [URL],
+        formatter: ConsoleFormatter
+    ) async throws {
+        guard let backendURL = EnvironmentConfig.backendURL else {
+            return
+        }
+
+        let backendClient = BackendClient(baseURL: backendURL)
+        let configManager = ConfigManager()
+
+        // 1. Get/Create Organization
+        let orgName = EnvironmentConfig.organizationName
+        let orgId = try await backendClient.getOrCreateOrganization(
+            name: orgName,
+            configManager: configManager
+        )
+
+        // 2. Get/Create Project
+        let projectId = try await backendClient.getOrCreateProject(
+            organizationId: orgId,
+            bundleId: config.appIdentifier,
+            name: config.appIdentifier,
+            configManager: configManager
+        )
+
+        // 3. Create Session
+        let sessionId = try await backendClient.createSession(
+            projectId: projectId,
+            steps: config.steps,
+            goal: config.goal,
+            temperature: config.ciMode ? 0.0 : 0.7,
+            enableVerification: true,
+            maxRetries: 3
+        )
+
+        print(formatter.formatInfo("Session created: \(sessionId)"))
+
+        // 4. Upload Exploration Data (if available)
+        if let explorationDataFile = artifacts.first(where: { $0.lastPathComponent == "exploration.json" }) {
+            do {
+                let data = try Data(contentsOf: explorationDataFile)
+                try await backendClient.uploadExplorationData(
+                    sessionId: sessionId,
+                    explorationData: data
+                )
+                print(formatter.formatInfo("Exploration data uploaded"))
+            } catch {
+                print("   ⚠️  Could not upload exploration data: \(error.localizedDescription)")
+            }
+        }
+
+        // 5. Upload Screenshots
+        let screenshots = artifacts.filter { $0.pathExtension == "png" }
+        if !screenshots.isEmpty {
+            print(formatter.formatInfo("Uploading \(screenshots.count) screenshots..."))
+            do {
+                _ = try await backendClient.uploadScreenshots(
+                    sessionId: sessionId,
+                    screenshots: screenshots
+                ) { current, total in
+                    // Progress callback - could enhance with progress bar
+                }
+                print(formatter.formatInfo("Screenshots uploaded"))
+            } catch {
+                print("   ⚠️  Could not upload screenshots: \(error.localizedDescription)")
+            }
+        }
+
+        // 6. Upload Test File
+        if let testFile = artifacts.first(where: { $0.pathExtension == "swift" }) {
+            do {
+                _ = try await backendClient.uploadArtifact(
+                    sessionId: sessionId,
+                    file: testFile,
+                    artifactType: .testFile
+                )
+                print(formatter.formatInfo("Test file uploaded"))
+            } catch {
+                print("   ⚠️  Could not upload test file: \(error.localizedDescription)")
+            }
+        }
+
+        // 7. Upload Dashboard HTML
+        if config.generateDashboard,
+           let dashboardFile = artifacts.first(where: { $0.lastPathComponent == "dashboard.html" }) {
+            do {
+                _ = try await backendClient.uploadArtifact(
+                    sessionId: sessionId,
+                    file: dashboardFile,
+                    artifactType: .dashboard
+                )
+                print(formatter.formatInfo("Dashboard uploaded"))
+            } catch {
+                print("   ⚠️  Could not upload dashboard: \(error.localizedDescription)")
+            }
+        }
+
+        // 8. Upload Manifest
+        if let manifestFile = artifacts.first(where: { $0.lastPathComponent == "manifest.json" }) {
+            do {
+                _ = try await backendClient.uploadArtifact(
+                    sessionId: sessionId,
+                    file: manifestFile,
+                    artifactType: .manifest
+                )
+                print(formatter.formatInfo("Manifest uploaded"))
+            } catch {
+                print("   ⚠️  Could not upload manifest: \(error.localizedDescription)")
+            }
+        }
+
+        // 9. Update Session with Final Metrics
+        let metrics = buildSessionMetrics(from: result)
+        let status = determineStatus(from: result)
+
+        try await backendClient.updateSession(
+            sessionId: sessionId,
+            status: status,
+            metrics: metrics
+        )
+
+        // 10. Print Dashboard Link
+        let dashboardURL = backendClient.getDashboardURL(sessionId: sessionId)
+        print("")
+        print(formatter.formatSuccess("Dashboard available at:"))
+        print(formatter.formatLink(dashboardURL))
+        print("")
+    }
+
+    /// Build session metrics from test execution result
+    private func buildSessionMetrics(from result: TestExecutionResult) -> SessionMetrics {
+        return SessionMetrics(
+            screensDiscovered: result.screensDiscovered,
+            transitions: nil,  // Not available in TestExecutionResult
+            durationSeconds: Int(result.duration),
+            successfulActions: nil,  // Not available in TestExecutionResult
+            failedActions: result.failuresFound,
+            crashesDetected: result.exitCode != 0 ? 1 : 0,
+            verificationsPerformed: nil,  // Not available in TestExecutionResult
+            verificationsPassed: nil,  // Not available in TestExecutionResult
+            retryAttempts: nil,  // Not available in TestExecutionResult
+            successRatePercent: result.wasSuccessful ? 100.0 : 0.0,
+            healthScore: calculateHealthScore(result: result)
+        )
+    }
+
+    /// Determine session status from test execution result
+    private func determineStatus(from result: TestExecutionResult) -> SessionStatus {
+        if result.exitCode != 0 {
+            return .crashed
+        } else if result.failuresFound > 0 {
+            return .failed
+        } else {
+            return .completed
+        }
+    }
+
+    /// Calculate health score based on result
+    private func calculateHealthScore(result: TestExecutionResult) -> Double {
+        var score = result.wasSuccessful ? 100.0 : 50.0
+
+        // Bonus for screens discovered
+        if result.screensDiscovered >= 5 {
+            score = min(100, score + 10)
+        }
+
+        // Penalty for failures
+        if result.failuresFound > 0 {
+            score = max(0, score - Double(result.failuresFound * 10))
+        }
+
+        // Penalty for crashes
+        if result.exitCode != 0 {
+            score = max(0, score - 20)
+        }
+
+        return score
     }
 }

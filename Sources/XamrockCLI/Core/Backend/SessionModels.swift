@@ -48,3 +48,62 @@ public struct SessionMetrics: Codable {
         self.healthScore = healthScore
     }
 }
+
+// MARK: - Artifact Types
+
+/// Types of artifacts that can be uploaded
+public enum ArtifactType: String, Codable {
+    case screenshot
+    case testFile
+    case report
+    case dashboard
+    case manifest
+}
+
+/// Response from artifact upload
+public struct ArtifactUploadResponse: Codable {
+    public let url: String
+}
+
+// MARK: - Session Details
+
+/// Session configuration (for creation)
+public struct SessionConfiguration: Codable {
+    public let steps: Int
+    public let goal: String
+    public let temperature: Double
+    public let enableVerification: Bool
+    public let maxRetries: Int
+}
+
+/// Session artifacts
+public struct SessionArtifacts: Codable {
+    public let screenshots: [String]?
+    public let testFiles: [String]?
+    public let reports: [String]?
+    public let dashboardURL: String?
+    public let manifestURL: String?
+}
+
+/// Detailed session information
+public struct SessionDetail: Codable {
+    public let id: UUID
+    public let projectId: UUID
+    public let status: SessionStatus
+    public let startedAt: Date
+    public let completedAt: Date?
+    public let config: SessionConfiguration?
+    public let metrics: SessionMetrics?
+    public let artifacts: SessionArtifacts?
+    public let dashboardURL: String?
+}
+
+/// Session summary (for listing)
+public struct SessionSummary: Codable {
+    public let id: UUID
+    public let status: SessionStatus
+    public let startedAt: Date
+    public let completedAt: Date?
+    public let screensDiscovered: Int?
+    public let successRatePercent: Double?
+}
